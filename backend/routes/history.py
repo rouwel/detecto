@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Query
 
-from detecto.models.record import clear_history, get_detections, get_stats
+from backend.models.record import clear_history, get_detections, get_stats
 
 router = APIRouter()
 

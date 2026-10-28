@@ -1,7 +1,9 @@
+"""Detecto backend application."""
+
 from fastapi import FastAPI
 
-from detecto.routes.detect import router as detect_router
-from detecto.routes.history import router as history_router
+from backend.routes.detect import router as detect_router
+from backend.routes.history import router as history_router
 
 app = FastAPI()
 
