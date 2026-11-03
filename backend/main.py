@@ -2,8 +2,8 @@
 
 from fastapi import FastAPI
 
-from backend.routes.detect import router as detect_router
-from backend.routes.history import router as history_router
+from routes.detect import router as detect_router
+from routes.history import router as history_router
 
 app = FastAPI()
 
