@@ -8,8 +8,8 @@ from typing import Any
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from ultralytics import YOLO
 
-from backend.models.record import DetectionRecord, save_detection
-from backend.utils.preprocessing import decode_frame, draw_detections, encode_overlay
+from models.record import DetectionRecord, save_detection
+from utils.preprocessing import decode_frame, draw_detections, encode_overlay
 
 router = APIRouter()
 
