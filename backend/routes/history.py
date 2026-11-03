@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Query
 
-from backend.models.record import clear_history, get_detections, get_stats
+from models.record import clear_history, get_detections, get_stats
 
 router = APIRouter()
 
