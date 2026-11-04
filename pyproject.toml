@@ -1,7 +1,7 @@
 [project]
 name = "detecto"
 version = "0.1.0"
-description = "Add your description here"
+description = "Real-time person detection and counting with YOLOv8 and FastAPI."
 readme = "README.md"
 authors = [
     { name = "rouwel", email = "rouwelngacha@gmail.com" }
@@ -9,14 +9,25 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.162.0",
+    "uvicorn[standard]>=0.54.0",
     "python-multipart>=0.0.32",
+    "python-dotenv>=1.0.0",
     "ultralytics>=8.4.191",
-    "uvicorn>=0.54.0",
+    "opencv-python>=4.10.0",
+    "numpy>=1.26.0",
+    "pillow>=10.0.0",
 ]
 
-[project.scripts]
-detecto = "detecto:main"
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "httpx>=0.28.0",
+]
 
-[build-system]
-requires = ["uv_build>=0.12.1,<0.13.0"]
-build-backend = "uv_build"
+# The application is a service, not an installable library.
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+addopts = "-q"
