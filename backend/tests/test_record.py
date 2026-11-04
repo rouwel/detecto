@@ -2,6 +2,7 @@
 
 import json
 
+import pytest
 from backend.models.record import (
     DetectionRecord,
     clear_history,
@@ -25,7 +26,7 @@ def make_record(confidences=(0.9, 0.7), processing_time_ms=10.0, inference_time_
 def test_record_computes_average_confidence():
     record = make_record((0.9, 0.7))
     assert record.count == 2
-    assert record.avg_confidence == 0.8
+    assert record.avg_confidence == pytest.approx(0.8)
 
 
 def test_record_without_detections_has_zero_confidence():
@@ -76,6 +77,6 @@ def test_stats(storage_path):
     stats = get_stats()
     assert stats["frames_processed"] == 2
     assert stats["total_detections"] == 3
-    assert stats["mean_confidence"] == 0.8
+    assert stats["mean_confidence"] == pytest.approx(0.8)
     assert stats["avg_processing_time_ms"] == 15.0
     assert stats["avg_inference_time_ms"] == 10.0
