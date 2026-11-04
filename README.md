@@ -103,44 +103,53 @@ For each image the number of visible people was counted manually (COCO ground-tr
 
 | Metric | Description | Target | Result |
 |---|---|---|---|
-| Detection accuracy | Correct detections ÷ total visible persons | ≥ 85 % | — |
-| False positives | Boxes that do not contain a person | ≤ 10 % | — |
-| Average inference time | Mean YOLO inference time per image (CPU) | ≤ 1.5 s | — |
-| Average confidence | Mean confidence of valid person detections | ≥ 0.7 | — |
-| System reliability | All 10 images processed without crashes | 100 % | — |
+| Detection accuracy | Correct detections ÷ total visible persons | ≥ 85 % | 65.4 % |
+| False positives | Boxes that do not contain a person | ≤ 10 % | 2.9 % |
+| Average inference time | Mean YOLO inference time per image (CPU) | ≤ 1.5 s | 396.8 ms |
+| Average confidence | Mean confidence of valid person detections | ≥ 0.7 | 0.663 |
+| System reliability | All 10 images processed without crashes | 100 % | 100 % |
 
 ### Per-image results
 
 | Image | Visible persons | Detections | Correct | False pos. | Accuracy | Confidence | Inference |
 |---|---|---|---|---|---|---|---|
-| frame1.jpg | 2 | — | — | — | — | — | — |
-| frame2.jpg | 1 | — | — | — | — | — | — |
-| frame3.jpg | 2 | — | — | — | — | — | — |
-| frame4.jpg | 8 | — | — | — | — | — | — |
-| frame5.jpg | 12 | — | — | — | — | — | — |
-| frame6.jpg | 4 | — | — | — | — | — | — |
-| frame7.jpg | 6 | — | — | — | — | — | — |
-| frame8.jpg | 1 | — | — | — | — | — | — |
-| frame9.jpg | 11 | — | — | — | — | — | — |
-| frame10.jpg | 5 | — | — | — | — | — | — |
-| **Total** | **52** | **—** | **—** | **—** | **—** | **—** | **—** |
+| frame1.jpg | 2 | 1 | 1 | 0 | 50.0 % | 0.712 | 2927.9 ms |
+| frame2.jpg | 1 | 1 | 1 | 0 | 100.0 % | 0.902 | 81.7 ms |
+| frame3.jpg | 2 | 2 | 2 | 0 | 100.0 % | 0.645 | 170.1 ms |
+| frame4.jpg | 8 | 4 | 4 | 0 | 50.0 % | 0.647 | 77.8 ms |
+| frame5.jpg | 12 | 13 | 12 | 1 | 100.0 % | 0.691 | 140.6 ms |
+| frame6.jpg | 4 | 4 | 4 | 0 | 100.0 % | 0.827 | 77.8 ms |
+| frame7.jpg | 6 | 5 | 5 | 0 | 83.3 % | 0.449 | 139.9 ms |
+| frame8.jpg | 1 | 1 | 1 | 0 | 100.0 % | 0.804 | 112.0 ms |
+| frame9.jpg | 11 | 4 | 4 | 0 | 36.4 % | 0.594 | 112.6 ms |
+| frame10.jpg | 5 | 0 | 0 | 0 | 0.0 % | 0.000 | 127.5 ms |
+| **Total** | **52** | **35** | **34** | **1** | **65.4 %** | **0.663** | **396.8 ms** |
 
-*Numbers to be filled in after running inference on this hardware (see "Running the evaluation" below).*
+### Detection screenshots
+
+Sample frames run through `/detect`, with boxes drawn by `draw_detections`:
+
+| Image | Result |
+|---|---|
+| `frame2.jpg` — single person, clear | ![detected-frame2](screenshots/detected-frame2.jpg) |
+| `frame6.jpg` — small group | ![detected-frame6](screenshots/detected-frame6.jpg) |
+| `frame4.jpg` — dense crowd (8 visible, 4 detected) | ![detected-frame4](screenshots/detected-frame4.jpg) |
+| `frame10.jpg` — 0 detections (failure case) | ![detected-frame10](screenshots/detected-frame10.jpg) |
+
 
 ### Running the evaluation
 
 ```bash
 # From repo root, backend venv activated:
-uv run python - <<'PY'
-# runs YOLOv8n on backend/samples/frame*.jpg,
-# compares against COCO ground truth, prints the metrics table
-PY
+.venv/bin/python /tmp/opencode/detecto-test/evaluate.py
 ```
+
+The script downloads `yolov8n.pt` on first run, runs inference on all 10 sample images, and compares against COCO ground-truth person counts. It prints the per-image table and metrics above.
 
 ### What worked well / what could improve
 
-- **Worked:** YOLOv8n is fast and accurate on clear, well-lit frames; bounding boxes line up with COCO ground truth; history + filters + CSV export work end to end.
-- **Limits:** CPU inference on 640×640 takes roughly 0.8–1.5 s per frame depending on hardware — fine for periodic frame capture, not true real-time video. Dense crowds (>10 people) and heavy occlusion cause under-counts. No tracking, so the same person in consecutive frames is counted each time.
+- **Worked:** End-to-end pipeline (upload → YOLOv8 inference → JSON response → JSON storage → history table/chart/CSV export) is reliable (100 % of images processed without crashes). Inference is fast (mean 396.8 ms/frame on CPU, well under the 1.5 s target). False positives are low (2.9 %). Bounding boxes line up with COCO ground truth on clear, well-lit frames.
+- **Limits:** Accuracy is 65.4 %, below the 85 % target. The shortfall comes almost entirely from dense crowds and occlusion — frame4 (8 visible, 4 detected), frame9 (11 visible, 4 detected), and frame10 (5 visible, 0 detected) are under-counted. YOLOv8n (nano) trades some accuracy for speed; switching to YOLOv8s/m or raising `imgsz` would improve crowd recall at the cost of latency. Average confidence (0.663) is just below the 0.7 target, driven by low-confidence detections in crowded frames. No tracking is implemented, so the same person across consecutive frames is counted each time — fine for periodic frame capture, not true real-time video.
 
 ## Demo images
 
