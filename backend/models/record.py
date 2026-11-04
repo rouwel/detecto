@@ -2,16 +2,16 @@
 
 import json
 import os
+import threading
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel
 
-# Storage location can be overridden with the DETECTION_STORAGE_PATH env var.
-DETECTION_STORAGE_PATH = Path(
-    os.getenv("DETECTION_STORAGE_PATH", "storage/detections.json")
-)
+from ..config import DETECTION_STORAGE_PATH, MAX_HISTORY_RECORDS
+
+# Serialises read-modify-write cycles when multiple requests save at once.
+_lock = threading.RLock()
 
 
 class DetectionRecord(BaseModel):
@@ -21,8 +21,10 @@ class DetectionRecord(BaseModel):
     filename: str
     detected_type: str
     count: int
+    avg_confidence: float = 0.0
     detections: list[dict[str, Any]]
     processing_time_ms: float
+    inference_time_ms: float = 0.0
 
     @classmethod
     def create(
@@ -31,68 +33,92 @@ class DetectionRecord(BaseModel):
         detected_type: str,
         detections: list[dict[str, Any]],
         processing_time_ms: float,
+        inference_time_ms: float = 0.0,
     ) -> "DetectionRecord":
+        confidences = [float(d["confidence"]) for d in detections if d.get("confidence") is not None]
         return cls(
             timestamp=datetime.now(timezone.utc).isoformat(),
             filename=filename,
             detected_type=detected_type,
             count=len(detections),
+            avg_confidence=sum(confidences) / len(confidences) if confidences else 0.0,
             detections=detections,
             processing_time_ms=processing_time_ms,
+            inference_time_ms=inference_time_ms,
         )
 
     def model_dump(self) -> dict[str, Any]:
         return json.loads(self.model_dump_json())
 
 
-def save_detection(record: DetectionRecord) -> None:
-    """Append a detection record to the JSON storage file."""
-    DETECTION_STORAGE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    records = get_detections()
-    records.append(record)
-    DETECTION_STORAGE_PATH.write_text(json.dumps([r.model_dump() for r in records], indent=2))
-
-
-def get_detections(limit: int | None = None) -> list[DetectionRecord]:
-    """Retrieve stored detection records (optionally limited to the most recent N)."""
+def _read_records() -> list[DetectionRecord]:
+    """Load records from disk, tolerating a missing or corrupted file."""
     if not DETECTION_STORAGE_PATH.exists():
         return []
 
     try:
         data = json.loads(DETECTION_STORAGE_PATH.read_text())
     except (json.JSONDecodeError, OSError):
-        # Corrupted or unreadable storage -> start fresh rather than crash.
         return []
 
-    records = [DetectionRecord(**item) for item in data if isinstance(item, dict)]
+    if not isinstance(data, list):
+        return []
+    return [DetectionRecord(**item) for item in data if isinstance(item, dict)]
+
+
+def _write_records(records: list[DetectionRecord]) -> None:
+    """Atomically replace the storage file to avoid partial writes."""
+    DETECTION_STORAGE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    payload = json.dumps([r.model_dump() for r in records], indent=2)
+    tmp_path = DETECTION_STORAGE_PATH.with_suffix(DETECTION_STORAGE_PATH.suffix + ".tmp")
+    tmp_path.write_text(payload)
+    os.replace(tmp_path, DETECTION_STORAGE_PATH)
+
+
+def save_detection(record: DetectionRecord) -> None:
+    """Append a detection record, trimming the oldest entries when capped."""
+    with _lock:
+        records = _read_records()
+        records.append(record)
+        if MAX_HISTORY_RECORDS > 0:
+            records = records[-MAX_HISTORY_RECORDS:]
+        _write_records(records)
+
+
+def get_detections(limit: int | None = None) -> list[DetectionRecord]:
+    """Retrieve stored detection records (optionally limited to the most recent N)."""
+    with _lock:
+        records = _read_records()
 
     if limit is not None:
         records = records[-limit:]
-
     return records
 
 
 def clear_history() -> None:
     """Clear all stored detection history."""
-    DETECTION_STORAGE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    DETECTION_STORAGE_PATH.write_text("[]")
+    with _lock:
+        _write_records([])
 
 
 def get_stats() -> dict[str, Any]:
     """Compute basic accuracy/performance stats from stored detections."""
     records = get_detections()
 
-    all_detections = [d for r in records for d in r.detections if d.get("confidence") is not None]
-    confidences = [float(d["confidence"]) for d in all_detections]
+    confidences = [
+        float(d["confidence"])
+        for record in records
+        for d in record.detections
+        if d.get("confidence") is not None
+    ]
 
-    avg_confidence = sum(confidences) / len(confidences) if confidences else 0.0
-    avg_processing_time_ms = (
-        sum(r.processing_time_ms for r in records) / len(records) if records else 0.0
-    )
+    def _mean(values: list[float]) -> float:
+        return sum(values) / len(values) if values else 0.0
 
     return {
         "total_detections": sum(r.count for r in records),
         "frames_processed": len(records),
-        "mean_confidence": avg_confidence,
-        "avg_processing_time_ms": avg_processing_time_ms,
+        "mean_confidence": _mean(confidences),
+        "avg_processing_time_ms": _mean([r.processing_time_ms for r in records]),
+        "avg_inference_time_ms": _mean([r.inference_time_ms for r in records if r.inference_time_ms]),
     }
