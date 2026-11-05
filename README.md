@@ -151,6 +151,16 @@ The script downloads `yolov8n.pt` on first run, runs inference on all 10 sample 
 - **Worked:** End-to-end pipeline (upload → YOLOv8 inference → JSON response → JSON storage → history table/chart/CSV export) is reliable (100 % of images processed without crashes). Inference is fast (mean 396.8 ms/frame on CPU, well under the 1.5 s target). False positives are low (2.9 %). Bounding boxes line up with COCO ground truth on clear, well-lit frames.
 - **Limits:** Accuracy is 65.4 %, below the 85 % target. The shortfall comes almost entirely from dense crowds and occlusion — frame4 (8 visible, 4 detected), frame9 (11 visible, 4 detected), and frame10 (5 visible, 0 detected) are under-counted. YOLOv8n (nano) trades some accuracy for speed; switching to YOLOv8s/m or raising `imgsz` would improve crowd recall at the cost of latency. Average confidence (0.663) is just below the 0.7 target, driven by low-confidence detections in crowded frames. No tracking is implemented, so the same person across consecutive frames is counted each time — fine for periodic frame capture, not true real-time video.
 
+## ⚠️ Precautions & Limitations
+
+- **Not for safety-critical use.** This system is a demonstration prototype. It has no real-time tracking, no region-based alerts, and no fail-safe mechanisms. Do not rely on it for security, occupancy compliance, or life-safety monitoring.
+- **Under-counts in crowds.** Dense groups and heavy occlusion significantly reduce accuracy (see evaluation results above). Expect lower counts than the true number of people in crowded frames.
+- **Model download on first run.** `yolov8n.pt` (~6 MB) is downloaded automatically from Ultralytics on the first inference. Ensure network access is available, or pre-download the weights and set `YOLO_MODEL_PATH` to a local file.
+- **Local JSON storage.** Detection history is written to `storage/detections.json`. It is not a database and is not designed for concurrent high-write production use. For multi-user or high-throughput deployments, replace the storage layer with SQLite or PostgreSQL.
+- **CPU-only by default.** Inference runs on CPU unless a GPU-enabled PyTorch is installed. Latency will be higher on CPU; the 396.8 ms average was measured on this hardware.
+- **Privacy.** Uploaded images and detection records are stored locally on the server. Do not upload images of people without appropriate consent and data-handling policies in place.
+- **Confidence threshold is tunable.** Lowering `YOLO_CONF` (or using the frontend slider) increases detections but also increases false positives. Raising it reduces false positives but may miss people.
+
 ## Demo images
 
 `backend/samples/` and `frontend/public/samples/` each contain 10 COCO validation frames (`frame1.jpg … frame10.jpg`) used for the evaluation above.
