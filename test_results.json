@@ -1,0 +1,111 @@
+{
+  "metrics": {
+    "detection_accuracy": 65.4,
+    "false_positive_rate": 2.9,
+    "avg_inference_time_ms": 1079.5,
+    "avg_confidence": 0.663,
+    "system_reliability": "100%"
+  },
+  "per_image": [
+    {
+      "image": "frame1.jpg",
+      "visible": 2,
+      "detections": 1,
+      "correct": 1,
+      "false_pos": 0,
+      "accuracy": 50.0,
+      "confidence": 0.712,
+      "inference_ms": 7211.9
+    },
+    {
+      "image": "frame2.jpg",
+      "visible": 1,
+      "detections": 1,
+      "correct": 1,
+      "false_pos": 0,
+      "accuracy": 100.0,
+      "confidence": 0.902,
+      "inference_ms": 188.1
+    },
+    {
+      "image": "frame3.jpg",
+      "visible": 2,
+      "detections": 2,
+      "correct": 2,
+      "false_pos": 0,
+      "accuracy": 100.0,
+      "confidence": 0.645,
+      "inference_ms": 1235.6
+    },
+    {
+      "image": "frame4.jpg",
+      "visible": 8,
+      "detections": 4,
+      "correct": 4,
+      "false_pos": 0,
+      "accuracy": 50.0,
+      "confidence": 0.647,
+      "inference_ms": 274.0
+    },
+    {
+      "image": "frame5.jpg",
+      "visible": 12,
+      "detections": 13,
+      "correct": 12,
+      "false_pos": 1,
+      "accuracy": 100.0,
+      "confidence": 0.691,
+      "inference_ms": 397.2
+    },
+    {
+      "image": "frame6.jpg",
+      "visible": 4,
+      "detections": 4,
+      "correct": 4,
+      "false_pos": 0,
+      "accuracy": 100.0,
+      "confidence": 0.827,
+      "inference_ms": 218.6
+    },
+    {
+      "image": "frame7.jpg",
+      "visible": 6,
+      "detections": 5,
+      "correct": 5,
+      "false_pos": 0,
+      "accuracy": 83.3,
+      "confidence": 0.449,
+      "inference_ms": 391.4
+    },
+    {
+      "image": "frame8.jpg",
+      "visible": 1,
+      "detections": 1,
+      "correct": 1,
+      "false_pos": 0,
+      "accuracy": 100.0,
+      "confidence": 0.804,
+      "inference_ms": 274.6
+    },
+    {
+      "image": "frame9.jpg",
+      "visible": 11,
+      "detections": 4,
+      "correct": 4,
+      "false_pos": 0,
+      "accuracy": 36.4,
+      "confidence": 0.594,
+      "inference_ms": 262.1
+    },
+    {
+      "image": "frame10.jpg",
+      "visible": 5,
+      "detections": 0,
+      "correct": 0,
+      "false_pos": 0,
+      "accuracy": 0.0,
+      "confidence": 0.0,
+      "inference_ms": 341.6
+    }
+  ]
+}

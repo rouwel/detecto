@@ -1,0 +1,3 @@
+# This is a PNG file renamed to .jpg - tests format detection
+This is not actually a JPEG file. It is a text file with a .jpg extension.
+Used to test that the backend validates file content, not just extension.
