@@ -23,10 +23,11 @@ async function errorFrom(res, fallback) {
   return typeof detail === "string" ? detail : `${fallback} (${res.status})`;
 }
 
-export async function detect(blob, filename, signal) {
+export async function detect(blob, filename, signal, conf) {
   const body = new FormData();
   body.append("file", blob, filename);
-  const res = await fetch(`${API_BASE}/detect`, { method: "POST", body, signal });
+  const url = conf != null ? `${API_BASE}/detect?conf=${conf}` : `${API_BASE}/detect`;
+  const res = await fetch(url, { method: "POST", body, signal });
   if (!res.ok) throw new Error(await errorFrom(res, "Detection failed"));
   return res.json();
 }

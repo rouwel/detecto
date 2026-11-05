@@ -39,11 +39,15 @@ def is_model_loaded() -> bool:
     return _model is not None
 
 
-def run_detection(image: bytes | np.ndarray) -> tuple[list[dict[str, Any]], float]:
+def run_detection(
+    image: bytes | np.ndarray,
+    conf: float | None = None,
+) -> tuple[list[dict[str, Any]], float]:
     """Run person detection and return detections plus inference time in ms.
 
     Args:
         image: Raw image bytes (JPEG/PNG) or a decoded BGR numpy frame.
+        conf: Confidence threshold. Defaults to YOLO_CONF env var.
 
     Returns:
         A tuple of (detections, inference_time_ms). Each detection contains
@@ -60,7 +64,7 @@ def run_detection(image: bytes | np.ndarray) -> tuple[list[dict[str, Any]], floa
     model = get_model()
 
     started = time.perf_counter()
-    results = model(frame, conf=YOLO_CONF, imgsz=YOLO_IMGSZ, verbose=False)
+    results = model(frame, conf=conf if conf is not None else YOLO_CONF, imgsz=YOLO_IMGSZ, verbose=False)
     inference_time_ms = (time.perf_counter() - started) * 1000
 
     detections: list[dict[str, Any]] = []
@@ -80,9 +84,9 @@ def run_detection(image: bytes | np.ndarray) -> tuple[list[dict[str, Any]], floa
     return detections, inference_time_ms
 
 
-def detect_people(image: bytes | np.ndarray) -> list[dict[str, Any]]:
+def detect_people(image: bytes | np.ndarray, conf: float | None = None) -> list[dict[str, Any]]:
     """Convenience wrapper returning only the detections."""
-    detections, _ = run_detection(image)
+    detections, _ = run_detection(image, conf=conf)
     return detections
 
 
@@ -90,6 +94,7 @@ def detect_people(image: bytes | np.ndarray) -> list[dict[str, Any]]:
 async def detect(
     file: UploadFile = File(...),
     include_overlay: bool = Query(False, description="Include a base64 annotated image."),
+    conf: float | None = Query(None, ge=0.0, le=1.0, description="Detection confidence threshold (0-1)."),
 ):
     """Detect people in an uploaded JPEG/PNG image."""
     if file.content_type not in ALLOWED_IMAGE_TYPES:
@@ -118,7 +123,7 @@ async def detect(
         )
 
     start_time = time.perf_counter()
-    detections, inference_time_ms = run_detection(frame)
+    detections, inference_time_ms = run_detection(frame, conf=conf)
 
     # Only build the annotated image when the caller asks for it.
     processed_image_b64 = None

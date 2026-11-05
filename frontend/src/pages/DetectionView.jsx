@@ -18,6 +18,7 @@ export default function DetectionView() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [confidence, setConfidence] = useState(0.25);
   const abortRef = useRef(null);
   const videoRef = useRef(null);
   const previewRef = useRef(null);
@@ -44,7 +45,7 @@ export default function DetectionView() {
     setLoading(true);
 
     try {
-      setResult(await detect(blob, name, controller.signal));
+      setResult(await detect(blob, name, controller.signal, confidence));
     } catch (err) {
       if (err.name !== "AbortError") setError(err.message);
     } finally {
@@ -114,7 +115,6 @@ export default function DetectionView() {
       setError(err.message);
     }
   }
-
   function clear() {
     abortRef.current?.abort();
     abortRef.current = null;
@@ -164,6 +164,20 @@ export default function DetectionView() {
             <strong>{loading ? "Analysing frame…" : "Choose an image or video"}</strong>
             <span className="muted">JPG, PNG or MP4 · max 50 MB</span>
           </label>
+
+          <div className="filter-group confidence-slider">
+            <label className="filter-label">Confidence threshold</label>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={confidence}
+              onChange={(e) => setConfidence(Number(e.target.value))}
+              className="filter-range"
+            />
+            <span className="filter-value">{Math.round(confidence * 100)}%</span>
+          </div>
 
           {error && (
             <p className="error" role="alert">
