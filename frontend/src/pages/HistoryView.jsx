@@ -55,6 +55,29 @@ function downloadCsv(rows) {
   URL.revokeObjectURL(url);
 }
 
+const HOUR_LABELS = [
+  "00:00", "01:00", "02:00", "03:00", "04:00", "05:00",
+  "06:00", "07:00", "08:00", "09:00", "10:00", "11:00",
+  "12:00", "13:00", "14:00", "15:00", "16:00", "17:00",
+  "18:00", "19:00", "20:00", "21:00", "22:00", "23:00",
+];
+
+function buildHourlyData(rows) {
+  const buckets = new Array(24).fill(0);
+  const counts = new Array(24).fill(0);
+  rows.forEach((record) => {
+    const hour = new Date(record.timestamp).getHours();
+    buckets[hour] += record.count;
+    counts[hour] += 1;
+  });
+  return buckets.map((sum, hour) => ({
+    hour: HOUR_LABELS[hour],
+    avg: counts[hour] ? sum / counts[hour] : 0,
+    count: sum,
+    frames: counts[hour],
+  }));
+}
+
 export default function HistoryView() {
   const [records, setRecords] = useState([]);
   const [stats, setStats] = useState(null);
@@ -95,8 +118,9 @@ export default function HistoryView() {
           avgConf: kept.length
             ? kept.reduce((sum, detection) => sum + detection.confidence, 0) / kept.length
             : null,
-          date: date.toLocaleDateString("en-CA"), // YYYY-MM-DD, local time
-          time: date.toTimeString().slice(0, 5), // HH:MM, local time
+          date: date.toLocaleDateString("en-CA"),
+          time: date.toTimeString().slice(0, 5),
+          hour: date.getHours(),
         };
       })
       .filter(
@@ -108,22 +132,12 @@ export default function HistoryView() {
       );
   }, [records, filters]);
 
-  const hourly = useMemo(() => {
-    const buckets = new Map();
-    rows.forEach((record) => {
-      const hour = new Date(record.timestamp).getHours();
-      const bucket = buckets.get(hour) ?? { sum: 0, frames: 0 };
-      bucket.sum += record.count;
-      bucket.frames += 1;
-      buckets.set(hour, bucket);
-    });
-    return [...buckets.entries()]
-      .sort(([a], [b]) => a - b)
-      .map(([hour, bucket]) => ({
-        hour,
-        average: bucket.sum / bucket.frames,
-      }));
-  }, [rows]);
+  const hourly = useMemo(() => buildHourlyData(rows), [rows]);
+
+  const maxHourlyAvg = useMemo(
+    () => Math.max(...hourly.map((h) => h.avg), 0),
+    [hourly],
+  );
 
   function setFilter(key) {
     return (event) =>
@@ -133,7 +147,11 @@ export default function HistoryView() {
       }));
   }
 
-  async function onReset() {
+  function onResetFilters() {
+    setFilters(EMPTY_FILTERS);
+  }
+
+  async function onResetHistory() {
     if (!window.confirm("Delete all detection history?")) return;
     try {
       await resetHistory();
@@ -158,66 +176,53 @@ export default function HistoryView() {
           <button className="button" onClick={() => downloadCsv(rows)} disabled={!rows.length}>
             Export CSV
           </button>
-          <button className="button danger" onClick={onReset}>
-            Clear history
+          <button className="button danger" onClick={onResetHistory}>
+            Reset history
           </button>
         </div>
       </header>
 
-      {stats && (
-        <div className="stat-grid">
-          <div className="stat">
-            <div className="stat-label">Frames</div>
-            <div className="stat-value">{stats.frames_processed}</div>
+      {/* Filter bar */}
+      <div className="panel filter-bar">
+        <div className="filter-row">
+          <div className="filter-group">
+            <label className="filter-label">From</label>
+            <input
+              type="date"
+              className="filter-input"
+              value={filters.dateFrom}
+              onChange={setFilter("dateFrom")}
+            />
           </div>
-          <div className="stat">
-            <div className="stat-label">People total</div>
-            <div className="stat-value">{stats.total_detections}</div>
+          <div className="filter-group">
+            <label className="filter-label">To</label>
+            <input
+              type="time"
+              className="filter-input"
+              value={filters.timeFrom}
+              onChange={setFilter("timeFrom")}
+            />
           </div>
-          <div className="stat">
-            <div className="stat-label">Mean confidence</div>
-            <div className="stat-value">
-              {(stats.mean_confidence * 100).toFixed(0)}
-              <small>%</small>
-            </div>
+          <div className="filter-group">
+            <label className="filter-label">To</label>
+            <input
+              type="date"
+              className="filter-input"
+              value={filters.dateTo}
+              onChange={setFilter("dateTo")}
+            />
           </div>
-          <div className="stat">
-            <div className="stat-label">Avg total</div>
-            <div className="stat-value">
-              {stats.avg_processing_time_ms.toFixed(0)}
-              <small>ms</small>
-            </div>
+          <div className="filter-group">
+            <label className="filter-label">To</label>
+            <input
+              type="time"
+              className="filter-input"
+              value={filters.timeTo}
+              onChange={setFilter("timeTo")}
+            />
           </div>
-          <div className="stat">
-            <div className="stat-label">Avg inference</div>
-            <div className="stat-value">
-              {(stats.avg_inference_time_ms ?? 0).toFixed(0)}
-              <small>ms</small>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="panel">
-        <div className="filters">
-          <label className="field">
-            <span>From date</span>
-            <input type="date" value={filters.dateFrom} onChange={setFilter("dateFrom")} />
-          </label>
-          <label className="field">
-            <span>To date</span>
-            <input type="date" value={filters.dateTo} onChange={setFilter("dateTo")} />
-          </label>
-          <label className="field">
-            <span>From time</span>
-            <input type="time" value={filters.timeFrom} onChange={setFilter("timeFrom")} />
-          </label>
-          <label className="field">
-            <span>To time</span>
-            <input type="time" value={filters.timeTo} onChange={setFilter("timeTo")} />
-          </label>
-          <label className="field">
-            <span>Min confidence · {Math.round(filters.minConf * 100)}%</span>
+          <div className="filter-group">
+            <label className="filter-label">Min confidence</label>
             <input
               type="range"
               min="0"
@@ -225,11 +230,16 @@ export default function HistoryView() {
               step="0.05"
               value={filters.minConf}
               onChange={setFilter("minConf")}
+              className="filter-range"
             />
-          </label>
+            <span className="filter-value">{Math.round(filters.minConf * 100)}%</span>
+          </div>
           <div className="filter-actions">
-            <button className="button" onClick={() => setFilters(EMPTY_FILTERS)}>
-              Reset filters
+            <button className="button" onClick={onResetFilters}>
+              Clear filters
+            </button>
+            <button className="button primary" onClick={() => {}}>
+              Apply
             </button>
           </div>
         </div>
@@ -247,15 +257,59 @@ export default function HistoryView() {
         <p className="empty">No detections match these filters.</p>
       )}
 
-      {rows.length > 0 && (
-        <div className="stack" style={{ marginTop: 16 }}>
-          <div className="panel">
-            <div className="section-head">
-              <h2>People over time</h2>
-              <span className="muted">
-                {rows.length} of {records.length} frames
-              </span>
+      {!error && !loading && rows.length > 0 && (
+        <div className="dashboard-grid">
+          {/* Stat cards */}
+          <div className="stat-row">
+            <div className="stat-card">
+              <div className="stat-label">Detections</div>
+              <div className="stat-value">{stats?.total_detections ?? 0}</div>
             </div>
+            <div className="stat-card avg-crowd">
+              <div className="stat-label">Avg Crowd</div>
+              <div className="stat-value">
+                {(stats?.avg_crowd ?? 0).toFixed(1)}
+              </div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-label">Peak</div>
+              <div className="stat-value">{stats?.peak ?? 0}</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-label">Avg Confidence</div>
+              <div className="stat-value">
+                {(stats?.mean_confidence ?? 0) * 100}.0%
+              </div>
+            </div>
+          </div>
+
+          {/* Average crowd size by hour - horizontal bars */}
+          <div className="panel chart-panel">
+            <h2>Average crowd size by hour</h2>
+            <div className="hour-bar-chart">
+              {hourly
+                .filter((h) => h.frames > 0)
+                .map((h) => {
+                  const pct = maxHourlyAvg > 0 ? (h.avg / maxHourlyAvg) * 100 : 0;
+                  return (
+                    <div key={h.hour} className="hour-bar-row">
+                      <span className="hour-label">{h.hour}</span>
+                      <div className="hour-bar-track">
+                        <div
+                          className="hour-bar-fill"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <span className="hour-value">{h.avg.toFixed(1)}</span>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+
+          {/* Crowd over time - line chart */}
+          <div className="panel chart-panel">
+            <h2>Crowd over time</h2>
             <div className="chart">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={rows}>
@@ -283,8 +337,8 @@ export default function HistoryView() {
                     type="monotone"
                     dataKey="count"
                     name="People"
-                    stroke="#f4f4f5"
-                    strokeWidth={1.5}
+                    stroke="#6ee7a8"
+                    strokeWidth={2}
                     dot={false}
                     isAnimationActive={false}
                   />
@@ -293,50 +347,42 @@ export default function HistoryView() {
             </div>
           </div>
 
-          {hourly.length > 0 && (
-            <div className="panel">
-              <div className="section-head">
-                <h2>Average people per hour</h2>
-                <span className="muted">Filtered frames</span>
-              </div>
-              <div className="hour-grid">
-                {hourly.map(({ hour, average }) => (
-                  <div className="hour-cell" key={hour}>
-                    <span>{String(hour).padStart(2, "0")}:00</span>
-                    <strong>{average.toFixed(1)}</strong>
-                  </div>
-                ))}
-              </div>
+          {/* Detections table */}
+          <div className="panel table-panel">
+            <div className="panel-header">
+              <h2>Detections</h2>
+              <span className="muted">{rows.length} of {records.length} frames</span>
             </div>
-          )}
-
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Timestamp</th>
-                  <th>File</th>
-                  <th>People</th>
-                  <th>Avg confidence</th>
-                  <th>Total (ms)</th>
-                  <th>Inference (ms)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...rows].reverse().map((record, index) => (
-                  <tr key={`${record.timestamp}-${index}`}>
-                    <td className="num">{new Date(record.timestamp).toLocaleString()}</td>
-                    <td>{record.filename}</td>
-                    <td className="num">{record.count}</td>
-                    <td className="num">
-                      {record.avgConf == null ? "—" : `${(record.avgConf * 100).toFixed(1)}%`}
-                    </td>
-                    <td className="num">{record.processing_time_ms.toFixed(0)}</td>
-                    <td className="num">{(record.inference_time_ms ?? 0).toFixed(0)}</td>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>People</th>
+                    <th>Avg confidence</th>
+                    <th>Inference</th>
+                    <th>File</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {[...rows].reverse().map((record, index) => (
+                    <tr key={`${record.timestamp}-${index}`}>
+                      <td className="num">
+                        {new Date(record.timestamp).toLocaleString()}
+                      </td>
+                      <td className="num">{record.count}</td>
+                      <td className="num">
+                        {record.avgConf == null ? "—" : `${(record.avgConf * 100).toFixed(1)}%`}
+                      </td>
+                      <td className="num">
+                        {(record.inference_time_ms ?? 0).toFixed(0)} ms
+                      </td>
+                      <td>{record.filename}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}

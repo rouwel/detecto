@@ -2,7 +2,7 @@
   "metrics": {
     "detection_accuracy": 65.4,
     "false_positive_rate": 2.9,
-    "avg_inference_time_ms": 1079.5,
+    "avg_inference_time_ms": 1234.4,
     "avg_confidence": 0.663,
     "system_reliability": "100%"
   },
@@ -15,7 +15,7 @@
       "false_pos": 0,
       "accuracy": 50.0,
       "confidence": 0.712,
-      "inference_ms": 7211.9
+      "inference_ms": 7435.9
     },
     {
       "image": "frame2.jpg",
@@ -25,7 +25,7 @@
       "false_pos": 0,
       "accuracy": 100.0,
       "confidence": 0.902,
-      "inference_ms": 188.1
+      "inference_ms": 550.6
     },
     {
       "image": "frame3.jpg",
@@ -35,7 +35,7 @@
       "false_pos": 0,
       "accuracy": 100.0,
       "confidence": 0.645,
-      "inference_ms": 1235.6
+      "inference_ms": 878.8
     },
     {
       "image": "frame4.jpg",
@@ -45,7 +45,7 @@
       "false_pos": 0,
       "accuracy": 50.0,
       "confidence": 0.647,
-      "inference_ms": 274.0
+      "inference_ms": 327.1
     },
     {
       "image": "frame5.jpg",
@@ -55,7 +55,7 @@
       "false_pos": 1,
       "accuracy": 100.0,
       "confidence": 0.691,
-      "inference_ms": 397.2
+      "inference_ms": 576.0
     },
     {
       "image": "frame6.jpg",
@@ -65,7 +65,7 @@
       "false_pos": 0,
       "accuracy": 100.0,
       "confidence": 0.827,
-      "inference_ms": 218.6
+      "inference_ms": 442.6
     },
     {
       "image": "frame7.jpg",
@@ -75,7 +75,7 @@
       "false_pos": 0,
       "accuracy": 83.3,
       "confidence": 0.449,
-      "inference_ms": 391.4
+      "inference_ms": 474.6
     },
     {
       "image": "frame8.jpg",
@@ -85,7 +85,7 @@
       "false_pos": 0,
       "accuracy": 100.0,
       "confidence": 0.804,
-      "inference_ms": 274.6
+      "inference_ms": 683.6
     },
     {
       "image": "frame9.jpg",
@@ -95,7 +95,7 @@
       "false_pos": 0,
       "accuracy": 36.4,
       "confidence": 0.594,
-      "inference_ms": 262.1
+      "inference_ms": 474.9
     },
     {
       "image": "frame10.jpg",
@@ -105,7 +105,7 @@
       "false_pos": 0,
       "accuracy": 0.0,
       "confidence": 0.0,
-      "inference_ms": 341.6
+      "inference_ms": 500.1
     }
   ]
 }

@@ -80,3 +80,5 @@ def test_stats(storage_path):
     assert stats["mean_confidence"] == pytest.approx(0.8)
     assert stats["avg_processing_time_ms"] == 15.0
     assert stats["avg_inference_time_ms"] == 10.0
+    assert stats["avg_crowd"] == pytest.approx(1.5)
+    assert stats["peak"] == 2

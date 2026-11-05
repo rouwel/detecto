@@ -115,9 +115,16 @@ def get_stats() -> dict[str, Any]:
     def _mean(values: list[float]) -> float:
         return sum(values) / len(values) if values else 0.0
 
+    avg_crowd = (
+        sum(r.count for r in records) / len(records) if records else 0.0
+    )
+    peak = max((r.count for r in records), default=0)
+
     return {
         "total_detections": sum(r.count for r in records),
         "frames_processed": len(records),
+        "avg_crowd": avg_crowd,
+        "peak": peak,
         "mean_confidence": _mean(confidences),
         "avg_processing_time_ms": _mean([r.processing_time_ms for r in records]),
         "avg_inference_time_ms": _mean([r.inference_time_ms for r in records if r.inference_time_ms]),
